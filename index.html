@@ -269,6 +269,38 @@
       white-space: nowrap;
     }
 
+    .tag-toolbar {
+      display: flex;
+      gap: 8px;
+      margin-top: -2px;
+    }
+
+    .tag-btn {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      font-family: 'IBM Plex Mono', monospace;
+      border: 1px solid var(--border-color);
+      background: var(--input-bg);
+      color: var(--text-secondary);
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      letter-spacing: 0.2px;
+      transition: all 0.15s ease;
+    }
+
+    .tag-btn:hover {
+      background: var(--card-bg);
+      border-color: var(--accent-color);
+      color: var(--text-color);
+    }
+
+    .tag-btn:active {
+      transform: scale(0.97);
+    }
+
     .input-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -541,11 +573,19 @@
       <div class="field-group">
         <label for="codeField">Python Code Segment</label>
         <textarea id="codeField"></textarea>
+        <div class="tag-toolbar">
+          <button type="button" class="tag-btn" id="btnCodeOrder">N##code##</button>
+          <button type="button" class="tag-btn" id="btnCodePause">t#duration#</button>
+        </div>
       </div>
 
       <div class="field-group">
         <label for="resultField">Terminal Output Sequence</label>
         <textarea id="resultField"></textarea>
+        <div class="tag-toolbar">
+          <button type="button" class="tag-btn" id="btnResultInput">inp#text#</button>
+          <button type="button" class="tag-btn" id="btnResultPause">t#duration#</button>
+        </div>
       </div>
     </div>
   </div>
@@ -561,6 +601,10 @@
       <div class="docs-item">
         <h3>2. Timing Spacers: <code>t#duration#</code></h3>
         <p>Inserts custom pacing delays (in seconds) anywhere inside either the Code block or the Output lines. For example, <code>t#0.7#</code> halts typing for exactly 0.7s before continuing, without displaying the tag itself.</p>
+      </div>
+      <div class="docs-item">
+        <h3>3. Ordered Typing: <code>N##code##</code></h3>
+        <p>Wrap a chunk of the Code block in <code>N##...##</code> to control the order it's TYPED in, independent of where it sits in the final file. Numbered chunks type lowest-to-highest first; untagged text always types last. The cursor jumps to the right spot and existing lines shift down, just like a real editor.</p>
       </div>
     </div>
   </div>
@@ -605,7 +649,14 @@
     let currentStepIndex = 0;
     let stepAccumulator = 0;
 
-    let animatedCodeText = "";
+    // Document model for out-of-order ("N##code##") aware typing.
+    // docLines mirrors the final code line array; null = not yet revealed.
+    let docLines = [];
+    let codeFinalLines = [];
+    let typeCursorLine = 0;
+    let typeCursorCol = 0;
+    let activeTypeStepIndex = -1;
+
     let animatedResultText = "";
     let animatedLoadingText = ""; 
     let showLoadingLine = false;
@@ -645,25 +696,94 @@
       draw();
     }
 
-    // Parser for Code Segments to process inline timing t#duration# delays
-    function parseCodeWithCustomPauses(rawText) {
-      const regex = /t#([0-9.]+)#/g;
-      let tokens = [];
+    // Maps an absolute character offset within finalDisplayText to a {line, col}
+    // position, using precomputed per-line start offsets.
+    function offsetToLineCol(offset, lineStarts) {
+      let line = 0;
+      for (let i = 0; i < lineStarts.length; i++) {
+        if (offset >= lineStarts[i]) line = i;
+        else break;
+      }
+      return { line, col: offset - lineStarts[line] };
+    }
+
+    // Compiles the Python Code Segment into a document model + typing steps.
+    // Supports two inline syntaxes:
+    //   t#duration#      -> a timed pause anywhere in the code
+    //   N##code here##   -> a chunk that should be TYPED in numeric order N,
+    //                       regardless of where it sits in the final document.
+    //                       Chunks without a number type last, in their
+    //                       original (document) order.
+    function compileCodeSteps(rawText) {
+      // 1. Split into ordered segments: numbered chunks + untagged gaps.
+      const segRegex = /(\d+)##([\s\S]*?)##/g;
+      const segments = [];
       let lastIndex = 0;
-      let match;
-
-      while ((match = regex.exec(rawText)) !== null) {
-        if (match.index > lastIndex) {
-          tokens.push({ type: "code", text: rawText.substring(lastIndex, match.index) });
+      let m;
+      while ((m = segRegex.exec(rawText)) !== null) {
+        if (m.index > lastIndex) {
+          segments.push({ order: null, raw: rawText.slice(lastIndex, m.index) });
         }
-        tokens.push({ type: "pause_token", duration: parseFloat(match[1]) || 0 });
-        lastIndex = regex.lastIndex;
+        segments.push({ order: parseInt(m[1], 10), raw: m[2] });
+        lastIndex = segRegex.lastIndex;
+      }
+      if (lastIndex < rawText.length) {
+        segments.push({ order: null, raw: rawText.slice(lastIndex) });
       }
 
-      if (lastIndex < rawText.length) {
-        tokens.push({ type: "code", text: rawText.substring(lastIndex) });
-      }
-      return tokens;
+      // 2. Within each segment, extract t#duration# pauses into an atom list,
+      //    and compute the segment's visible (display) text.
+      const pauseRegex = /t#([0-9.]+)#/g;
+      segments.forEach(seg => {
+        const atoms = [];
+        let li = 0, mm;
+        pauseRegex.lastIndex = 0;
+        while ((mm = pauseRegex.exec(seg.raw)) !== null) {
+          if (mm.index > li) atoms.push({ type: 'text', text: seg.raw.slice(li, mm.index) });
+          atoms.push({ type: 'pause', duration: parseFloat(mm[1]) || 0 });
+          li = pauseRegex.lastIndex;
+        }
+        if (li < seg.raw.length) atoms.push({ type: 'text', text: seg.raw.slice(li) });
+        seg.atoms = atoms;
+        seg.displayText = atoms.filter(a => a.type === 'text').map(a => a.text).join('');
+      });
+
+      // 3. Concatenate segments in DOCUMENT order to get the final rendered code,
+      //    recording each segment's absolute start offset within it.
+      let finalDisplayText = '';
+      segments.forEach(seg => {
+        seg.startPos = finalDisplayText.length;
+        finalDisplayText += seg.displayText;
+      });
+
+      const finalLines = finalDisplayText.split('\n');
+      const lineStarts = [];
+      let acc = 0;
+      finalLines.forEach(l => { lineStarts.push(acc); acc += l.length + 1; });
+
+      // 4. Determine TYPING order: numbered segments ascending, then
+      //    untagged segments last, in their original document order.
+      const numbered = segments.filter(s => s.order !== null).sort((a, b) => a.order - b.order);
+      const untagged = segments.filter(s => s.order === null);
+      const typingOrder = [...numbered, ...untagged];
+
+      // 5. Emit type/pause steps, each type step anchored to a precise
+      //    starting line/column in the final document.
+      const steps = [];
+      typingOrder.forEach(seg => {
+        let posCursor = seg.startPos;
+        seg.atoms.forEach(atom => {
+          if (atom.type === 'text' && atom.text.length > 0) {
+            const { line, col } = offsetToLineCol(posCursor, lineStarts);
+            steps.push({ type: 'type_code', text: atom.text, startLine: line, startCol: col, typedCount: 0 });
+            posCursor += atom.text.length;
+          } else if (atom.type === 'pause') {
+            steps.push({ type: 'pause', duration: atom.duration });
+          }
+        });
+      });
+
+      return { steps, finalLines };
     }
 
     // Combined parser for outputs, extracting both inp#text# and t#duration#
@@ -757,18 +877,6 @@
       return tokens;
     }
 
-    // Help track total expected typed code length across all previous segments in the timeline
-    function getCodeLengthUpToStep(stepIdx) {
-      let len = 0;
-      for (let i = 0; i < stepIdx; i++) {
-        const step = timeline[i];
-        if (step.type === 'type_code') {
-          len += step.text.length;
-        }
-      }
-      return len;
-    }
-
     // Help track total expected typed result length across all previous segments in the timeline
     function getResultLengthUpToStep(stepIdx) {
       let len = 0;
@@ -784,15 +892,11 @@
     function compileTimeline() {
       const steps = [];
       
-      // Step 1: Compile Code block (extracting internal timing segments)
-      const codeTokens = parseCodeWithCustomPauses(codeInput.value);
-      codeTokens.forEach(tok => {
-        if (tok.type === 'code') {
-          steps.push({ type: 'type_code', text: tok.text });
-        } else if (tok.type === 'pause_token') {
-          steps.push({ type: 'pause', duration: tok.duration });
-        }
-      });
+      // Step 1: Compile Code block (supports N##code## reordering + t#duration# pauses)
+      const compiledCode = compileCodeSteps(codeInput.value);
+      codeFinalLines = compiledCode.finalLines;
+      docLines = new Array(codeFinalLines.length).fill(null);
+      steps.push(...compiledCode.steps);
       
       // Step 2: Loader Sequence Delay (Adjusted to exactly 1.5 seconds)
       steps.push({ type: 'pause', duration: 1.5 }); 
@@ -820,12 +924,14 @@
     }
 
     function resetAnimation() {
-      animatedCodeText = "";
       animatedResultText = "";
       animatedLoadingText = "";
       showLoadingLine = false;
       currentStepIndex = 0;
       stepAccumulator = 0;
+      activeTypeStepIndex = -1;
+      typeCursorLine = 0;
+      typeCursorCol = 0;
       timeline = compileTimeline();
     }
 
@@ -879,22 +985,44 @@
         const step = timeline[currentStepIndex];
 
         if (step.type === 'type_code') {
+          if (activeTypeStepIndex !== currentStepIndex) {
+            activeTypeStepIndex = currentStepIndex;
+            typeCursorLine = step.startLine;
+            typeCursorCol = step.startCol;
+            if (docLines[typeCursorLine] === null || docLines[typeCursorLine] === undefined) {
+              docLines[typeCursorLine] = '';
+            }
+          }
+
           stepAccumulator += deltaTime * speed;
           const charsTypedForThisStep = Math.floor(stepAccumulator);
-          
-          if (charsTypedForThisStep > 0) {
-            const prevTextLength = getCodeLengthUpToStep(currentStepIndex);
-            const segmentTypedLength = animatedCodeText.length - prevTextLength;
-            
-            if (segmentTypedLength < step.text.length) {
-              const charsToAppend = step.text.substring(segmentTypedLength, Math.min(step.text.length, segmentTypedLength + charsTypedForThisStep));
-              animatedCodeText += charsToAppend;
-            }
-            stepAccumulator = 0; 
 
-            if (animatedCodeText.length - prevTextLength >= step.text.length) {
+          if (charsTypedForThisStep > 0) {
+            const newCharsCount = Math.min(charsTypedForThisStep, step.text.length - step.typedCount);
+
+            if (newCharsCount > 0) {
+              const chunk = step.text.substr(step.typedCount, newCharsCount);
+              for (const ch of chunk) {
+                if (ch === '\n') {
+                  typeCursorLine++;
+                  typeCursorCol = 0;
+                  if (docLines[typeCursorLine] === null || docLines[typeCursorLine] === undefined) {
+                    docLines[typeCursorLine] = '';
+                  }
+                } else {
+                  const lineStr = docLines[typeCursorLine] || '';
+                  docLines[typeCursorLine] = lineStr.slice(0, typeCursorCol) + ch + lineStr.slice(typeCursorCol);
+                  typeCursorCol++;
+                }
+              }
+              step.typedCount += newCharsCount;
+            }
+            stepAccumulator = 0;
+
+            if (step.typedCount >= step.text.length) {
               currentStepIndex++;
               stepAccumulator = 0;
+              activeTypeStepIndex = -1;
             }
           }
         } 
@@ -967,6 +1095,55 @@
       requestAnimationFrame(tick);
     }
 
+    // Flattens colored token runs into a per-character array for wrapping.
+    function flattenTokensToChars(tokens) {
+      const chars = [];
+      tokens.forEach(tok => {
+        for (const ch of tok.text) chars.push({ ch, color: tok.color });
+      });
+      return chars;
+    }
+
+    function flattenPlainToChars(text, color) {
+      const chars = [];
+      for (const ch of text) chars.push({ ch, color });
+      return chars;
+    }
+
+    // Hard-wraps a flat char array into rows of at most maxCharsPerRow,
+    // matching real-terminal border-collision behavior (breaks mid-word
+    // when it hits the edge instead of overflowing).
+    function wrapCharsFixed(chars, maxCharsPerRow) {
+      const limit = Math.max(1, maxCharsPerRow);
+      if (chars.length === 0) return [[]];
+      const rows = [];
+      for (let i = 0; i < chars.length; i += limit) {
+        rows.push(chars.slice(i, i + limit));
+      }
+      return rows;
+    }
+
+    // Draws a row of colored chars, grouping consecutive same-color runs
+    // into single fillText calls for crisp, efficient rendering.
+    function drawCharRow(rowChars, x, y, font) {
+      ctx.font = font;
+      let i = 0;
+      let curX = x;
+      while (i < rowChars.length) {
+        let j = i;
+        const color = rowChars[i].color;
+        let text = '';
+        while (j < rowChars.length && rowChars[j].color === color) {
+          text += rowChars[j].ch;
+          j++;
+        }
+        ctx.fillStyle = color;
+        ctx.fillText(text, curX, y);
+        curX += ctx.measureText(text).width;
+        i = j;
+      }
+    }
+
     function draw() {
       const profile = RATIO_PROFILES[activeRatio];
       
@@ -1009,37 +1186,71 @@
       ctx.textAlign = 'center';
       ctx.fillText(titleInput.value || 'terminal', winX + (profile.winWidth / 2), winY + 41);
 
-      const displayLines = [];
-      const codeLines = animatedCodeText.split('\n');
-      
-      codeLines.forEach(line => {
-        displayLines.push({ type: 'code', tokens: tokenizePythonLine(line) });
-      });
-
-      const pastCodePhase = timeline.length > 0 && currentStepIndex > 1;
-      if (showLoadingLine) {
-        displayLines.push({ type: 'spacer' });
-        displayLines.push({ type: 'loading_line', text: animatedLoadingText });
-      } else if (animatedResultText.length > 0 || pastCodePhase) {
-        displayLines.push({ type: 'spacer' });
-      }
-
-      if (animatedResultText.length > 0) {
-        const resultLines = animatedResultText.split('\n');
-        resultLines.forEach(line => {
-          displayLines.push({ type: 'result', text: line });
-        });
-      }
-
       const lineGap = 42;
       const paddingLeft = 48;
+      const paddingRight = 40;
+      const codeFont = `400 26px 'IBM Plex Mono', monospace`;
       const startContentY = winY + headerHeight + 40;
       const maxContainerHeight = profile.winHeight - headerHeight - 80;
       const maxLinesAllowed = Math.floor(maxContainerHeight / lineGap);
 
+      ctx.font = codeFont;
+      const charWidth = ctx.measureText('M').width || 15;
+      const maxTextWidth = profile.winWidth - paddingLeft - paddingRight;
+      const maxCharsPerRow = Math.max(1, Math.floor(maxTextWidth / charWidth));
+
+      // Build the wrapped visual row list (border-collision-safe) plus track
+      // where the blinking cursor currently sits within it.
+      const visualRows = [];
+      let cursorRowIndex = -1;
+      let cursorColInRow = 0;
+
+      docLines.forEach((lineText, idx) => {
+        if (lineText === null || lineText === undefined) return;
+        const chars = flattenTokensToChars(tokenizePythonLine(lineText));
+        const rows = wrapCharsFixed(chars, maxCharsPerRow);
+        const startIdx = visualRows.length;
+        rows.forEach(rowChars => visualRows.push({ type: 'code', chars: rowChars }));
+
+        if (idx === typeCursorLine) {
+          cursorRowIndex = startIdx + rows.length - 1;
+          cursorColInRow = rows[rows.length - 1].length;
+        }
+      });
+
+      const loadingStepIndex = timeline.findIndex(s => s.type === 'loading');
+      const isPastCode = loadingStepIndex !== -1 && currentStepIndex >= loadingStepIndex;
+      const isCurrentlyLoading = loadingStepIndex !== -1 && currentStepIndex === loadingStepIndex;
+      const pastCodePhase = timeline.length > 0 && isPastCode;
+
+      if (showLoadingLine) {
+        visualRows.push({ type: 'spacer' });
+        visualRows.push({ type: 'loading_line', text: animatedLoadingText });
+      } else if (animatedResultText.length > 0 || pastCodePhase) {
+        visualRows.push({ type: 'spacer' });
+      }
+
+      let resultCursorRowIndex = -1;
+      let resultCursorColInRow = 0;
+
+      if (animatedResultText.length > 0) {
+        const resultLines = animatedResultText.split('\n');
+        resultLines.forEach((line, lIdx) => {
+          const chars = flattenPlainToChars(line, '#E2E8F0');
+          const rows = wrapCharsFixed(chars, maxCharsPerRow);
+          const startIdx = visualRows.length;
+          rows.forEach(rowChars => visualRows.push({ type: 'result', chars: rowChars }));
+
+          if (lIdx === resultLines.length - 1) {
+            resultCursorRowIndex = startIdx + rows.length - 1;
+            resultCursorColInRow = rows[rows.length - 1].length;
+          }
+        });
+      }
+
       let scrollOffsetLines = 0;
-      if (displayLines.length > maxLinesAllowed) {
-        scrollOffsetLines = displayLines.length - maxLinesAllowed;
+      if (visualRows.length > maxLinesAllowed) {
+        scrollOffsetLines = visualRows.length - maxLinesAllowed;
       }
 
       ctx.save();
@@ -1052,51 +1263,43 @@
 
       let currentDrawY = startContentY - (scrollOffsetLines * lineGap);
 
-      displayLines.forEach((line) => {
+      visualRows.forEach((row) => {
         if (currentDrawY >= winY + headerHeight - 10) {
-          if (line.type === 'code') {
-            let currentDrawX = winX + paddingLeft;
-            line.tokens.forEach(tok => {
-              ctx.fillStyle = tok.color;
-              ctx.font = `400 26px 'IBM Plex Mono', monospace`;
-              ctx.fillText(tok.text, currentDrawX, currentDrawY);
-              currentDrawX += ctx.measureText(tok.text).width;
-            });
-          } else if (line.type === 'loading_line') {
-            ctx.fillStyle = '#64748B'; 
-            ctx.font = `400 26px 'IBM Plex Mono', monospace`;
-            ctx.fillText(line.text, winX + paddingLeft, currentDrawY);
-          } else if (line.type === 'result') {
-            ctx.fillStyle = '#E2E8F0'; 
-            ctx.font = `400 26px 'IBM Plex Mono', monospace`;
-            ctx.fillText(line.text, winX + paddingLeft, currentDrawY);
+          if (row.type === 'code' || row.type === 'result') {
+            drawCharRow(row.chars, winX + paddingLeft, currentDrawY, codeFont);
+          } else if (row.type === 'loading_line') {
+            ctx.fillStyle = '#64748B';
+            ctx.font = codeFont;
+            ctx.fillText(row.text, winX + paddingLeft, currentDrawY);
           }
         }
         currentDrawY += lineGap;
       });
 
-      // Resolved Blink Cursor Glitching on Code/Result Transition boundaries
+      // Blink cursor, tracked against the actual wrapped row it lands on so
+      // it always sits within the terminal border, never past it.
       let cursorTargetX = winX + paddingLeft;
-      let cursorTargetY = startContentY;
-
-      const loadingStepIndex = timeline.findIndex(s => s.type === 'loading');
-      const isPastCode = loadingStepIndex !== -1 && currentStepIndex >= loadingStepIndex;
-      const isCurrentlyLoading = loadingStepIndex !== -1 && currentStepIndex === loadingStepIndex;
+      let cursorTargetY = startContentY - (scrollOffsetLines * lineGap);
+      let cursorHasTarget = false;
 
       if (isPastCode) {
-        const resultLines = animatedResultText.split('\n');
-        const lastResultLine = resultLines[resultLines.length - 1] || "";
-        ctx.font = `400 26px 'IBM Plex Mono', monospace`;
-        cursorTargetX = winX + paddingLeft + ctx.measureText(lastResultLine).width;
-        cursorTargetY = currentDrawY - lineGap;
+        if (resultCursorRowIndex !== -1) {
+          cursorTargetX = winX + paddingLeft + (resultCursorColInRow * charWidth);
+          cursorTargetY = startContentY + (resultCursorRowIndex * lineGap) - (scrollOffsetLines * lineGap);
+          cursorHasTarget = true;
+        }
+      } else if (cursorRowIndex !== -1) {
+        cursorTargetX = winX + paddingLeft + (cursorColInRow * charWidth);
+        cursorTargetY = startContentY + (cursorRowIndex * lineGap) - (scrollOffsetLines * lineGap);
+        cursorHasTarget = true;
       } else {
-        const lastLineText = codeLines[codeLines.length - 1] || "";
-        ctx.font = `400 26px 'IBM Plex Mono', monospace`;
-        cursorTargetX = winX + paddingLeft + ctx.measureText(lastLineText).width;
-        cursorTargetY = startContentY + ((codeLines.length - 1) * lineGap) - (scrollOffsetLines * lineGap);
+        // Nothing typed yet - rest the cursor at the top-left start position.
+        cursorTargetX = winX + paddingLeft;
+        cursorTargetY = startContentY;
+        cursorHasTarget = true;
       }
 
-      if (cursorVisible && cursorTargetY >= winY + headerHeight && !isCurrentlyLoading && currentStepIndex < timeline.length) {
+      if (cursorVisible && cursorHasTarget && cursorTargetY >= winY + headerHeight && !isCurrentlyLoading && currentStepIndex < timeline.length) {
         ctx.fillStyle = '#38BDF8';
         ctx.fillRect(cursorTargetX + 2, cursorTargetY + 2, 12, 28);
       }
@@ -1196,6 +1399,97 @@
       startRecording();
     });
 
+    // Finds the highest existing N##...## order number in the code field so
+    // new insertions always get the next number in sequence.
+    function getNextOrderNumber(text) {
+      const regex = /(\d+)##/g;
+      let max = 0;
+      let m;
+      while ((m = regex.exec(text)) !== null) {
+        const n = parseInt(m[1], 10);
+        if (n > max) max = n;
+      }
+      return max + 1;
+    }
+
+    // Fires the same 'input' event the manual typing listeners rely on, so
+    // resetAnimation()+draw() run and the preview reflects the new tag.
+    function notifyTextareaChanged(textarea) {
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    // t#duration# — inserts at the caret (pushing any current selection
+    // after it), landing with the "1" pre-selected so a duration can be
+    // typed straight over it.
+    function insertPauseTag(textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const value = textarea.value;
+      const selected = value.substring(start, end);
+      const before = value.substring(0, start);
+      const after = value.substring(end);
+      const tag = "t#1#";
+
+      textarea.value = before + tag + selected + after;
+      textarea.focus();
+      textarea.setSelectionRange(start + 2, start + 3); // select the "1"
+      notifyTextareaChanged(textarea);
+    }
+
+    // N##code## — wraps the current selection as "<next>##selection##".
+    // With no selection, inserts a "<next>##code##" snippet with "code"
+    // pre-selected, VS-Code-snippet style.
+    function insertOrderedCodeTag(textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const value = textarea.value;
+      const prefix = getNextOrderNumber(value) + "##";
+      const before = value.substring(0, start);
+      const after = value.substring(end);
+
+      if (start !== end) {
+        const selected = value.substring(start, end);
+        textarea.value = before + prefix + selected + "##" + after;
+        textarea.focus();
+        textarea.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
+      } else {
+        const placeholder = "code";
+        textarea.value = before + prefix + placeholder + "##" + after;
+        textarea.focus();
+        textarea.setSelectionRange(start + prefix.length, start + prefix.length + placeholder.length);
+      }
+      notifyTextareaChanged(textarea);
+    }
+
+    // inp#text# — wraps the current selection as "inp#selection#".
+    // With no selection, inserts an "inp#text#" snippet with "text"
+    // pre-selected.
+    function insertInputTag(textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const value = textarea.value;
+      const before = value.substring(0, start);
+      const after = value.substring(end);
+
+      if (start !== end) {
+        const selected = value.substring(start, end);
+        textarea.value = before + "inp#" + selected + "#" + after;
+        textarea.focus();
+        textarea.setSelectionRange(start + 4, start + 4 + selected.length);
+      } else {
+        const placeholder = "text";
+        textarea.value = before + "inp#" + placeholder + "#" + after;
+        textarea.focus();
+        textarea.setSelectionRange(start + 4, start + 4 + placeholder.length);
+      }
+      notifyTextareaChanged(textarea);
+    }
+
+    document.getElementById('btnCodeOrder').addEventListener('click', () => insertOrderedCodeTag(codeInput));
+    document.getElementById('btnCodePause').addEventListener('click', () => insertPauseTag(codeInput));
+    document.getElementById('btnResultInput').addEventListener('click', () => insertInputTag(resultInput));
+    document.getElementById('btnResultPause').addEventListener('click', () => insertPauseTag(resultInput));
+
     [codeInput, resultInput, titleInput, loadingTextInput, loadingLoopsInput].forEach(elem => {
       elem.addEventListener('input', () => {
         resetAnimation();
@@ -1211,4 +1505,4 @@
     });
   </script>
 </body>
-</html>
+  </html>
