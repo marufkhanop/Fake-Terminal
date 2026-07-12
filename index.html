@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premium Code Animation Studio</title>
+  
+  <!-- Fonts: IBM Plex Mono & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    /* CSS Variables for Premium Developer Themes */
+    :root {
+      --bg-color: #090d16;
+      --card-bg: #111827;
+      --border-color: #1f2937;
+      --text-color: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --accent-color: #2563eb;
+      --accent-hover: #3b82f6;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+      --input-bg: #0b0f19;
+      --shadow-sm: 0 4px 12px rgba(0,0,0,0.2);
+      --shadow-lg: 0 16px 48px rgba(0,0,0,0.4);
+    }
+
+    body.light-theme {
+      --bg-color: #f4f4f6;
+      --card-bg: #ffffff;
+      --border-color: #e5e7eb;
+      --text-color: #111827;
+      --text-secondary: #6b7280;
+      --accent-color: #0071e3;
+      --accent-hover: #1d9bf0;
+      --input-bg: #f9fafb;
+      --shadow-sm: 0 4px 12px rgba(0,0,0,0.02);
+      --shadow-lg: 0 16px 48px rgba(0,0,0,0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 24px;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    header {
+      width: 100%;
+      max-width: 1200px;
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Minimalist Toggle Switch */
+    .theme-toggle-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .theme-toggle-btn:hover {
+      background-color: var(--input-bg);
+      border-color: var(--text-secondary);
+    }
+
+    .theme-toggle-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .main-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      width: 100%;
+      max-width: 1200px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .main-container {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+    }
+
+    /* Visual Preview Column */
+    .preview-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+    }
+
+    .preview-wrapper {
+      position: relative;
+      width: 100%;
+      background-color: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: aspect-ratio 0.25s ease;
+    }
+
+    .preview-wrapper.vertical { aspect-ratio: 9/16; max-width: 380px; }
+    .preview-wrapper.horizontal { aspect-ratio: 16/9; max-width: 680px; }
+    .preview-wrapper.square { aspect-ratio: 1/1; max-width: 480px; }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Action Buttons row */
+    .action-row {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 100%;
+      justify-content: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .btn:hover {
+      background-color: var(--input-bg);
+      border-color: var(--text-secondary);
+    }
+
+    .btn-primary {
+      background-color: var(--accent-color);
+      color: #ffffff;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* System Control settings column */
+    .control-panel {
+      background-color: var(--card-bg);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-color);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 6px;
+      margin-bottom: 4px;
+    }
+
+    .ratio-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .ratio-btn {
+      padding: 10px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border-color);
+      background: var(--input-bg);
+      color: var(--text-color);
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .ratio-btn.active {
+      background: var(--text-color);
+      color: var(--bg-color);
+      border-color: var(--text-color);
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .field-group label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: end;
+    }
+
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 12px;
+      font-size: 13px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      font-family: inherit;
+      transition: all 0.2s ease;
+      outline: none;
+      resize: none;
+    }
+
+    select {
+      cursor: pointer;
+    }
+
+    input[type="text"]:focus, textarea:focus, select:focus {
+      border-color: var(--text-secondary);
+      background-color: var(--card-bg);
+    }
+
+    textarea {
+      height: 140px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .recording-banner {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: #ef4444;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+      z-index: 10;
+    }
+
+    .recording-banner span {
+      width: 6px;
+      height: 6px;
+      background: white;
+      border-radius: 50%;
+      animation: pulse 1s infinite alternate;
+    }
+
+    /* Documentation Section */
+    .docs-section {
+      width: 100%;
+      max-width: 1200px;
+      margin-top: 48px;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .docs-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-color);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+
+    .docs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .docs-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .docs-item h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-color);
+    }
+
+    .docs-item p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .docs-item code {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Apple-Style Symmetrical Footer */
+    footer {
+      width: 100%;
+      max-width: 1200px;
+      margin-top: 64px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      padding-bottom: 32px;
+    }
+
+    .footer-social-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .social-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--border-color);
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .social-btn:hover {
+      background-color: var(--input-bg);
+      border-color: var(--text-secondary);
+      transform: translateY(-2px);
+    }
+
+    .social-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .copyright {
+      font-size: 12px;
+      color: var(--text-secondary);
+      letter-spacing: 0.2px;
+    }
+
+    @keyframes pulse {
+      from { opacity: 0.4; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1>Code Animation Studio</h1>
+      <p>Clean terminal clips with customizable ratios and structured variable highlighting.</p>
+    </div>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle-btn" id="themeToggle">
+      <svg id="themeIcon" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-12.37c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.38.39-1.02 0-1.41zm-12.37 12.37c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.38.39-1.02 0-1.41z"/></svg>
+      <span id="themeText">Light Theme</span>
+    </button>
+  </header>
+
+  <div class="main-container">
+    <!-- Left Column: Visual Preview Canvas -->
+    <div class="preview-panel">
+      <!-- Default classes set layout profile directly to square -->
+      <div class="preview-wrapper square" id="wrapper">
+        <div class="recording-banner" id="recBanner">
+          <span></span>REC
+        </div>
+        <canvas id="canvas"></canvas>
+      </div>
+
+      <div class="action-row">
+        <button class="btn" id="btnPlay">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Play
+        </button>
+        <button class="btn" id="btnPause" disabled>
+          <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>Pause
+        </button>
+        <button class="btn btn-primary" id="btnDownload">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>Download Video
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Column: Settings and inputs -->
+    <div class="control-panel">
+      <div class="field-group">
+        <div class="section-title">Canvas Aspect Ratio</div>
+        <div class="ratio-selector">
+          <button class="ratio-btn" data-ratio="vertical">Vertical (9:16)</button>
+          <button class="ratio-btn" data-ratio="horizontal">Horizontal (16:9)</button>
+          <button class="ratio-btn active" data-ratio="square">Square (1:1)</button>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="section-title">Export Settings</div>
+        <div class="input-row">
+          <div class="field-group">
+            <label for="exportFormat">Video Format</label>
+            <select id="exportFormat">
+              <option value="mp4" selected>MP4 (.mp4)</option>
+              <option value="webm">WebM (.webm)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="exportBitrate">Video Bitrate</label>
+            <select id="exportBitrate">
+              <option value="16000000" selected>16 Mbps (Pristine)</option>
+              <option value="8000000">8 Mbps (High Quality)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">Terminal Configurations</div>
+      
+      <div class="input-row">
+        <div class="field-group">
+          <label for="windowTitle">Terminal Hostname</label>
+          <input type="text" id="windowTitle" value="marufkhanop">
+        </div>
+        <div class="field-group">
+          <label for="typingSpeed">Typing Speed (chars/s)</label>
+          <input type="text" id="typingSpeed" value="10">
+        </div>
+      </div>
+
+      <div class="input-row">
+        <div class="field-group">
+          <label for="loadingText">Loader Label</label>
+          <input type="text" id="loadingText" value="loading">
+        </div>
+        <div class="field-group">
+          <label for="loadingLoops">Loader Loop Cycles</label>
+          <input type="text" id="loadingLoops" value="3">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label for="codeField">Python Code Segment</label>
+        <textarea id="codeField"></textarea>
+      </div>
+
+      <div class="field-group">
+        <label for="resultField">Terminal Output Sequence</label>
+        <textarea id="resultField"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Documentation Section -->
+  <div class="docs-section">
+    <div class="docs-title">Developer Pacing & Instruction Set</div>
+    <div class="docs-grid">
+      <div class="docs-item">
+        <h3>1. Simulated User Inputs: <code>inp#text#</code></h3>
+        <p>Integrates a realistic keyboard entry sequence into terminal execution. It automatically registers a 1.5s pause, types out the letters sequentially, and executes another 1.5s wait block after completion.</p>
+      </div>
+      <div class="docs-item">
+        <h3>2. Timing Spacers: <code>t#duration#</code></h3>
+        <p>Inserts custom pacing delays (in seconds) anywhere inside either the Code block or the Output lines. For example, <code>t#0.7#</code> halts typing for exactly 0.7s before continuing, without displaying the tag itself.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Apple-Style Symmetrical Footer -->
+  <footer>
+    <div class="footer-social-row">
+      <a href="https://github.com/marufkhanop" class="social-btn" target="_blank" aria-label="GitHub">
+        <svg viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
+      </a>
+      <a href="https://www.linkedin.com/in/marufkhanop" class="social-btn" target="_blank" aria-label="LinkedIn">
+        <svg viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+      </a>
+    </div>
+    <div class="copyright">© 2026 Maruf Khan. All rights reserved.</div>
+  </footer>
+
+  <script>
+    const RATIO_PROFILES = {
+      vertical: { width: 1080, height: 1920, winWidth: 920, winHeight: 1400 },
+      horizontal: { width: 1920, height: 1080, winWidth: 1480, winHeight: 800 },
+      square: { width: 1080, height: 1080, winWidth: 920, winHeight: 820 }
+    };
+
+    // Default configuration set to square
+    let activeRatio = 'square';
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const codeInput = document.getElementById('codeField');
+    const resultInput = document.getElementById('resultField');
+    const titleInput = document.getElementById('windowTitle');
+    const speedInput = document.getElementById('typingSpeed');
+    const loadingTextInput = document.getElementById('loadingText');
+    const loadingLoopsInput = document.getElementById('loadingLoops');
+
+    // Applied default configurations
+    codeInput.value = "def greet(user):\n    for i in range(2):\n        print(f'{i+1}: Hello {user}')\n\ngreet('Maruf')";
+    resultInput.value = ">>>>>\nuser name: inp#Maruf#\n1: Hello Maruf\n2: Hello Maruf";
+
+    let timeline = [];
+    let currentStepIndex = 0;
+    let stepAccumulator = 0;
+
+    let animatedCodeText = "";
+    let animatedResultText = "";
+    let animatedLoadingText = ""; 
+    let showLoadingLine = false;
+
+    let lastTime = 0;
+    let cursorVisible = true;
+    let cursorTimer = 0;
+    let isPlaying = false;
+
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const themeText = document.getElementById('themeText');
+    const themeIcon = document.getElementById('themeIcon');
+    
+    themeToggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('light-theme');
+      if (document.body.classList.contains('light-theme')) {
+        themeText.innerText = "Dark Theme";
+        themeIcon.innerHTML = `<path d="M12.1 22c5.52 0 10-4.48 10-10S17.62 2 12.1 2c-.66 0-1.3.06-1.93.18.77.8 1.25 1.88 1.25 3.07 0 2.37-1.93 4.3-4.3 4.3-.12 0-.24-.01-.36-.02C6.22 13.9 4 15.7 4 17.9 4 20.16 7.63 22 12.1 22z"/>`;
+      } else {
+        themeText.innerText = "Light Theme";
+        themeIcon.innerHTML = `<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-12.37c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.38.39-1.02 0-1.41zm-12.37 12.37c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.38.39-1.02 0-1.41z"/>`;
+      }
+      draw();
+    });
+
+    function updateCanvasSize() {
+      const profile = RATIO_PROFILES[activeRatio];
+      canvas.width = profile.width;
+      canvas.height = profile.height;
+      
+      const wrapper = document.getElementById('wrapper');
+      wrapper.className = `preview-wrapper ${activeRatio}`;
+      draw();
+    }
+
+    // Parser for Code Segments to process inline timing t#duration# delays
+    function parseCodeWithCustomPauses(rawText) {
+      const regex = /t#([0-9.]+)#/g;
+      let tokens = [];
+      let lastIndex = 0;
+      let match;
+
+      while ((match = regex.exec(rawText)) !== null) {
+        if (match.index > lastIndex) {
+          tokens.push({ type: "code", text: rawText.substring(lastIndex, match.index) });
+        }
+        tokens.push({ type: "pause_token", duration: parseFloat(match[1]) || 0 });
+        lastIndex = regex.lastIndex;
+      }
+
+      if (lastIndex < rawText.length) {
+        tokens.push({ type: "code", text: rawText.substring(lastIndex) });
+      }
+      return tokens;
+    }
+
+    // Combined parser for outputs, extracting both inp#text# and t#duration#
+    function parseResultWithCustomPauses(rawText) {
+      const regex = /(inp#(.*?)#|t#([0-9.]+)#)/g;
+      let tokens = [];
+      let lastIndex = 0;
+      let match;
+
+      while ((match = regex.exec(rawText)) !== null) {
+        if (match.index > lastIndex) {
+          tokens.push({ type: "instant", text: rawText.substring(lastIndex, match.index) });
+        }
+        if (match[2] !== undefined) {
+          tokens.push({ type: "typed", text: match[2] });
+        } else if (match[3] !== undefined) {
+          tokens.push({ type: "pause_token", duration: parseFloat(match[3]) || 0 });
+        }
+        lastIndex = regex.lastIndex;
+      }
+
+      if (lastIndex < rawText.length) {
+        tokens.push({ type: "instant", text: rawText.substring(lastIndex) });
+      }
+      return tokens;
+    }
+
+    // Precise Python Tokenizer with String Interpolation (f-strings) support
+    function tokenizePythonLine(line) {
+      const regex = /(#[^\n]*|f?"[^"\\]*(?:\\.[^"\\]*)*"|f?'[^'\\]*(?:\\.[^'\\]*)*'|\b(?:def|class|for|in|import|from|return|if|elif|else|while|try|except|as|with|lambda|and|or|not|is)\b|\b(?:print|range|len|str|int|float|list|dict|set|tuple|append)\b|\b(?:None|True|False)\b|\b\d+\b|[a-zA-Z_][a-zA-Z0-9_]*|[^\s]|\s+)/g;
+      let match;
+      const tokens = [];
+
+      while ((match = regex.exec(line)) !== null) {
+        let text = match[0];
+        
+        if (text.startsWith('#')) {
+          tokens.push({ text, color: '#64748B' });
+        } 
+        else if (text.startsWith('f"') || text.startsWith("f'")) {
+          const prefix = text.substring(0, 2); 
+          const content = text.substring(2, text.length - 1); 
+          const suffix = text.substring(text.length - 1); 
+          
+          tokens.push({ text: prefix, color: '#F472B6' }); 
+          
+          let lastContentIdx = 0;
+          const innerRegex = /(\{[^}]+\})/g;
+          let innerMatch;
+          
+          while ((innerMatch = innerRegex.exec(content)) !== null) {
+            if (innerMatch.index > lastContentIdx) {
+              tokens.push({
+                text: content.substring(lastContentIdx, innerMatch.index),
+                color: '#38BDF8' 
+              });
+            }
+            const innerExpression = innerMatch[0]; 
+            tokens.push({ text: '{', color: '#F472B6' }); 
+            tokens.push({ text: innerExpression.slice(1, -1), color: '#F1F5F9' }); // Removed green color highlights from syntax parameters (changed to default white)
+            tokens.push({ text: '}', color: '#F472B6' }); 
+            lastContentIdx = innerRegex.lastIndex;
+          }
+          if (lastContentIdx < content.length) {
+            tokens.push({ text: content.substring(lastContentIdx), color: '#38BDF8' });
+          }
+          tokens.push({ text: suffix, color: '#F472B6' });
+        }
+        else if (text.startsWith('"') || text.startsWith("'")) {
+          tokens.push({ text, color: '#38BDF8' }); 
+        } 
+        else if (/^\b(def|class|for|in|import|from|return|if|elif|else|while|try|except|as|with|lambda|and|or|not|is)\b$/.test(text)) {
+          tokens.push({ text, color: '#F472B6' }); 
+        } 
+        else if (/^\b(print|range|len|str|int|float|list|dict|set|tuple|append)\b$/.test(text)) {
+          tokens.push({ text, color: '#FB7185' }); 
+        } 
+        else if (/^\b(None|True|False)\b$/.test(text)) {
+          tokens.push({ text, color: '#C084FC' }); 
+        } 
+        else if (/^\d+$/.test(text)) {
+          tokens.push({ text, color: '#F59E0B' }); 
+        } 
+        else if (/^[(){}[\].,:;+\-*/%&|^=<>!~]/.test(text)) {
+          tokens.push({ text, color: '#94A3B8' }); 
+        } 
+        else {
+          tokens.push({ text, color: '#F1F5F9' }); 
+        }
+      }
+      return tokens;
+    }
+
+    // Help track total expected typed code length across all previous segments in the timeline
+    function getCodeLengthUpToStep(stepIdx) {
+      let len = 0;
+      for (let i = 0; i < stepIdx; i++) {
+        const step = timeline[i];
+        if (step.type === 'type_code') {
+          len += step.text.length;
+        }
+      }
+      return len;
+    }
+
+    // Help track total expected typed result length across all previous segments in the timeline
+    function getResultLengthUpToStep(stepIdx) {
+      let len = 0;
+      for (let i = 0; i < stepIdx; i++) {
+        const step = timeline[i];
+        if (step.type === 'print_instant' || step.type === 'type_input') {
+          len += step.text.length;
+        }
+      }
+      return len;
+    }
+
+    function compileTimeline() {
+      const steps = [];
+      
+      // Step 1: Compile Code block (extracting internal timing segments)
+      const codeTokens = parseCodeWithCustomPauses(codeInput.value);
+      codeTokens.forEach(tok => {
+        if (tok.type === 'code') {
+          steps.push({ type: 'type_code', text: tok.text });
+        } else if (tok.type === 'pause_token') {
+          steps.push({ type: 'pause', duration: tok.duration });
+        }
+      });
+      
+      // Step 2: Loader Sequence Delay (Adjusted to exactly 1.5 seconds)
+      steps.push({ type: 'pause', duration: 1.5 }); 
+
+      // Step 3: Loader Sequence
+      const loops = parseInt(loadingLoopsInput.value) || 3;
+      const label = loadingTextInput.value.trim().replace(/\.+$/, ""); 
+      steps.push({ type: 'loading', text: label, loops: loops });
+
+      // Step 4: Segment outputs (extracting both inp#text# inputs and t#duration# timing tags)
+      const resultTokens = parseResultWithCustomPauses(resultInput.value);
+      resultTokens.forEach(tok => {
+        if (tok.type === 'instant') {
+          steps.push({ type: 'print_instant', text: tok.text });
+        } else if (tok.type === 'typed') {
+          steps.push({ type: 'pause', duration: 1.5 }); 
+          steps.push({ type: 'type_input', text: tok.text });
+          steps.push({ type: 'pause', duration: 1.5 }); 
+        } else if (tok.type === 'pause_token') {
+          steps.push({ type: 'pause', duration: tok.duration });
+        }
+      });
+
+      return steps;
+    }
+
+    function resetAnimation() {
+      animatedCodeText = "";
+      animatedResultText = "";
+      animatedLoadingText = "";
+      showLoadingLine = false;
+      currentStepIndex = 0;
+      stepAccumulator = 0;
+      timeline = compileTimeline();
+    }
+
+    function startAnimation() {
+      resetAnimation();
+      isPlaying = true;
+      document.getElementById('btnPlay').disabled = true;
+      document.getElementById('btnPause').disabled = false;
+    }
+
+    function pauseAnimation() {
+      isPlaying = false;
+      document.getElementById('btnPlay').disabled = false;
+      document.getElementById('btnPause').disabled = true;
+    }
+
+    document.querySelectorAll('.ratio-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        activeRatio = e.target.dataset.ratio;
+        updateCanvasSize();
+      });
+    });
+
+    document.getElementById('btnPlay').addEventListener('click', () => {
+      if (!isPlaying && currentStepIndex > 0 && currentStepIndex < timeline.length) {
+        isPlaying = true;
+        document.getElementById('btnPlay').disabled = true;
+        document.getElementById('btnPause').disabled = false;
+      } else {
+        startAnimation();
+      }
+    });
+    document.getElementById('btnPause').addEventListener('click', pauseAnimation);
+
+    function tick(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const deltaTime = (timestamp - lastTime) / 1000;
+      lastTime = timestamp;
+
+      cursorTimer += deltaTime;
+      if (cursorTimer >= 0.5) {
+        cursorVisible = !cursorVisible;
+        cursorTimer = 0;
+      }
+
+      const speed = parseFloat(speedInput.value) || 10;
+
+      if (isPlaying && currentStepIndex < timeline.length) {
+        const step = timeline[currentStepIndex];
+
+        if (step.type === 'type_code') {
+          stepAccumulator += deltaTime * speed;
+          const charsTypedForThisStep = Math.floor(stepAccumulator);
+          
+          if (charsTypedForThisStep > 0) {
+            const prevTextLength = getCodeLengthUpToStep(currentStepIndex);
+            const segmentTypedLength = animatedCodeText.length - prevTextLength;
+            
+            if (segmentTypedLength < step.text.length) {
+              const charsToAppend = step.text.substring(segmentTypedLength, Math.min(step.text.length, segmentTypedLength + charsTypedForThisStep));
+              animatedCodeText += charsToAppend;
+            }
+            stepAccumulator = 0; 
+
+            if (animatedCodeText.length - prevTextLength >= step.text.length) {
+              currentStepIndex++;
+              stepAccumulator = 0;
+            }
+          }
+        } 
+        else if (step.type === 'loading') {
+          showLoadingLine = true;
+          stepAccumulator += deltaTime;
+          
+          // Loader cycle logic based on 1.5 seconds intervals
+          const progress = stepAccumulator % 1.5;
+          let dotCount = 0;
+          if (progress >= 0.375 && progress < 0.75) dotCount = 1;
+          else if (progress >= 0.75 && progress < 1.125) dotCount = 2;
+          else if (progress >= 1.125) dotCount = 3;
+
+          animatedLoadingText = step.text + ".".repeat(dotCount);
+
+          if (stepAccumulator >= step.loops * 1.5) {
+            showLoadingLine = false; 
+            currentStepIndex++;
+            stepAccumulator = 0;
+          }
+        }
+        else if (step.type === 'pause') {
+          stepAccumulator += deltaTime;
+          if (stepAccumulator >= step.duration) {
+            currentStepIndex++;
+            stepAccumulator = 0;
+          }
+        } 
+        else if (step.type === 'print_instant') {
+          animatedResultText += step.text;
+          currentStepIndex++;
+          stepAccumulator = 0;
+        } 
+        else if (step.type === 'type_input') {
+          stepAccumulator += deltaTime * (speed * 0.75);
+          const charsTypedForThisStep = Math.floor(stepAccumulator);
+          
+          if (charsTypedForThisStep > 0) {
+            const prevTextLength = getResultLengthUpToStep(currentStepIndex);
+            const segmentTypedLength = animatedResultText.length - prevTextLength;
+            
+            if (segmentTypedLength < step.text.length) {
+              const charsToAppend = step.text.substring(segmentTypedLength, Math.min(step.text.length, segmentTypedLength + charsTypedForThisStep));
+              animatedResultText += charsToAppend;
+            }
+            stepAccumulator = 0; 
+
+            if (animatedResultText.length - prevTextLength >= step.text.length) {
+              currentStepIndex++;
+              stepAccumulator = 0;
+            }
+          }
+        }
+      } else if (currentStepIndex >= timeline.length) {
+        if (isPlaying) {
+          isPlaying = false;
+          document.getElementById('btnPlay').disabled = false;
+          document.getElementById('btnPause').disabled = true;
+          if (isRecording) {
+            // High-fidelity delay padding (1.5s) at export boundaries
+            setTimeout(() => {
+              stopRecording();
+            }, 1500);
+          }
+        }
+      }
+
+      draw();
+      requestAnimationFrame(tick);
+    }
+
+    function draw() {
+      const profile = RATIO_PROFILES[activeRatio];
+      
+      ctx.fillStyle = '#22C55E';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const winX = (canvas.width - profile.winWidth) / 2;
+      const winY = (canvas.height - profile.winHeight) / 2;
+      const radius = 24;
+
+      // Removed box shadows entirely for clear chroma key processing
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      ctx.fillStyle = '#0B0F19';
+      ctx.beginPath();
+      ctx.roundRect(winX, winY, profile.winWidth, profile.winHeight, radius);
+      ctx.fill();
+
+      const headerHeight = 64;
+      ctx.fillStyle = '#161B26';
+      ctx.beginPath();
+      ctx.roundRect(winX, winY, profile.winWidth, headerHeight, [radius, radius, 0, 0]);
+      ctx.fill();
+
+      const dotRadius = 7;
+      const dotY = winY + (headerHeight / 2);
+      const dotColors = ['#FF5F56', '#FFBD2E', '#27C93F'];
+      dotColors.forEach((color, idx) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(winX + 28 + (idx * 22), dotY, dotRadius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.fillStyle = '#8E9AA8';
+      ctx.font = `500 20px 'IBM Plex Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(titleInput.value || 'terminal', winX + (profile.winWidth / 2), winY + 41);
+
+      const displayLines = [];
+      const codeLines = animatedCodeText.split('\n');
+      
+      codeLines.forEach(line => {
+        displayLines.push({ type: 'code', tokens: tokenizePythonLine(line) });
+      });
+
+      const pastCodePhase = timeline.length > 0 && currentStepIndex > 1;
+      if (showLoadingLine) {
+        displayLines.push({ type: 'spacer' });
+        displayLines.push({ type: 'loading_line', text: animatedLoadingText });
+      } else if (animatedResultText.length > 0 || pastCodePhase) {
+        displayLines.push({ type: 'spacer' });
+      }
+
+      if (animatedResultText.length > 0) {
+        const resultLines = animatedResultText.split('\n');
+        resultLines.forEach(line => {
+          displayLines.push({ type: 'result', text: line });
+        });
+      }
+
+      const lineGap = 42;
+      const paddingLeft = 48;
+      const startContentY = winY + headerHeight + 40;
+      const maxContainerHeight = profile.winHeight - headerHeight - 80;
+      const maxLinesAllowed = Math.floor(maxContainerHeight / lineGap);
+
+      let scrollOffsetLines = 0;
+      if (displayLines.length > maxLinesAllowed) {
+        scrollOffsetLines = displayLines.length - maxLinesAllowed;
+      }
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(winX, winY + headerHeight, profile.winWidth, profile.winHeight - headerHeight - 20);
+      ctx.clip();
+
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+
+      let currentDrawY = startContentY - (scrollOffsetLines * lineGap);
+
+      displayLines.forEach((line) => {
+        if (currentDrawY >= winY + headerHeight - 10) {
+          if (line.type === 'code') {
+            let currentDrawX = winX + paddingLeft;
+            line.tokens.forEach(tok => {
+              ctx.fillStyle = tok.color;
+              ctx.font = `400 26px 'IBM Plex Mono', monospace`;
+              ctx.fillText(tok.text, currentDrawX, currentDrawY);
+              currentDrawX += ctx.measureText(tok.text).width;
+            });
+          } else if (line.type === 'loading_line') {
+            ctx.fillStyle = '#64748B'; 
+            ctx.font = `400 26px 'IBM Plex Mono', monospace`;
+            ctx.fillText(line.text, winX + paddingLeft, currentDrawY);
+          } else if (line.type === 'result') {
+            ctx.fillStyle = '#E2E8F0'; 
+            ctx.font = `400 26px 'IBM Plex Mono', monospace`;
+            ctx.fillText(line.text, winX + paddingLeft, currentDrawY);
+          }
+        }
+        currentDrawY += lineGap;
+      });
+
+      // Resolved Blink Cursor Glitching on Code/Result Transition boundaries
+      let cursorTargetX = winX + paddingLeft;
+      let cursorTargetY = startContentY;
+
+      const loadingStepIndex = timeline.findIndex(s => s.type === 'loading');
+      const isPastCode = loadingStepIndex !== -1 && currentStepIndex >= loadingStepIndex;
+      const isCurrentlyLoading = loadingStepIndex !== -1 && currentStepIndex === loadingStepIndex;
+
+      if (isPastCode) {
+        const resultLines = animatedResultText.split('\n');
+        const lastResultLine = resultLines[resultLines.length - 1] || "";
+        ctx.font = `400 26px 'IBM Plex Mono', monospace`;
+        cursorTargetX = winX + paddingLeft + ctx.measureText(lastResultLine).width;
+        cursorTargetY = currentDrawY - lineGap;
+      } else {
+        const lastLineText = codeLines[codeLines.length - 1] || "";
+        ctx.font = `400 26px 'IBM Plex Mono', monospace`;
+        cursorTargetX = winX + paddingLeft + ctx.measureText(lastLineText).width;
+        cursorTargetY = startContentY + ((codeLines.length - 1) * lineGap) - (scrollOffsetLines * lineGap);
+      }
+
+      if (cursorVisible && cursorTargetY >= winY + headerHeight && !isCurrentlyLoading && currentStepIndex < timeline.length) {
+        ctx.fillStyle = '#38BDF8';
+        ctx.fillRect(cursorTargetX + 2, cursorTargetY + 2, 12, 28);
+      }
+
+      ctx.restore();
+    }
+
+    // Resolves compatible mimeType configurations based on dynamic select parameters
+    function getExportConfig(format, targetBitrate) {
+      if (format === 'mp4') {
+        const mp4Types = ['video/mp4;codecs=avc1', 'video/mp4'];
+        for (const type of mp4Types) {
+          if (MediaRecorder.isTypeSupported(type)) {
+            return { mimeType: type, videoBitsPerSecond: targetBitrate };
+          }
+        }
+      }
+      
+      const webmTypes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+      for (const type of webmTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          return { mimeType: type, videoBitsPerSecond: targetBitrate };
+        }
+      }
+      
+      return { videoBitsPerSecond: targetBitrate };
+    }
+
+    function startRecording() {
+      recordedChunks = [];
+      isRecording = true;
+      document.getElementById('recBanner').style.display = 'flex';
+      
+      const stream = canvas.captureStream(30);
+      const formatSelection = document.getElementById('exportFormat').value;
+      const bitrateSelection = parseInt(document.getElementById('exportBitrate').value);
+
+      const options = getExportConfig(formatSelection, bitrateSelection);
+
+      try {
+        mediaRecorder = new MediaRecorder(stream, options);
+      } catch (e) {
+        console.warn("MediaRecorder prioritized encoding options failed. Falling back.", e);
+        mediaRecorder = new MediaRecorder(stream, { videoBitsPerSecond: bitrateSelection });
+      }
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        document.body.appendChild(a);
+        a.style = 'display: none';
+        a.href = url;
+        
+        // Ensure precise filename is always formatted exactly as user requested
+        const ext = mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+        a.download = `codevideo.${ext}`;
+        a.click();
+        
+        window.URL.revokeObjectURL(url);
+        document.getElementById('recBanner').style.display = 'none';
+        isRecording = false;
+        
+        const downloadBtn = document.getElementById('btnDownload');
+        downloadBtn.disabled = false;
+        downloadBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>Download Video`;
+      };
+
+      // Playback timing configuration adjustments for output streams
+      mediaRecorder.start();
+      resetAnimation();
+      isPlaying = false; // Stay idle initially during start delay window
+
+      setTimeout(() => {
+        isPlaying = true;
+        document.getElementById('btnPlay').disabled = true;
+        document.getElementById('btnPause').disabled = false;
+      }, 1500); // 1.5s initial visual idle buffer delay
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    }
+
+    document.getElementById('btnDownload').addEventListener('click', () => {
+      const downloadBtn = document.getElementById('btnDownload');
+      downloadBtn.disabled = true;
+      downloadBtn.innerText = "Recording...";
+      startRecording();
+    });
+
+    [codeInput, resultInput, titleInput, loadingTextInput, loadingLoopsInput].forEach(elem => {
+      elem.addEventListener('input', () => {
+        resetAnimation();
+        draw();
+      });
+    });
+
+    updateCanvasSize();
+    resetAnimation();
+    
+    document.fonts.ready.then(() => {
+      requestAnimationFrame(tick);
+    });
+  </script>
+</body>
+</html>
