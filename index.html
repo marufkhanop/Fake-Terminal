@@ -642,7 +642,7 @@
     const loadingLoopsInput = document.getElementById('loadingLoops');
 
     // Applied default configurations
-    codeInput.value = "def greet(user):\n    for i in range(2):\n        print(f'{i+1}: Hello {user}')\n\ngreet('Maruf')";
+    codeInput.value = "def greet(user):\n    for i in range(2):\n        print(f'{i+1}: Hello {user}')\nuser = input('user name:')\ngreet(user)";
     resultInput.value = ">>>>>\nuser name: inp#Maruf#\n1: Hello Maruf\n2: Hello Maruf";
 
     let timeline = [];
